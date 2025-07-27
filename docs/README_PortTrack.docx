@@ -1,0 +1,29 @@
+PortTrack - Plataforma de Navegación Portuaria
+
+1. Descripción del Proyecto
+PortTrack es una plataforma de navegación portuaria usada para operaciones logísticas. Este repositorio contiene la configuración para el despliegue continuo, monitoreo y futuras integraciones con ChatOps.
+
+2. Estrategia de Despliegue Continuo
+Se usa la estrategia Blue-Green para evitar caídas del sistema. Se despliega en el entorno Green y, si todo va bien, se cambia el tráfico desde Blue. Si hay errores, se vuelve al entorno anterior.
+
+3. Configuración de Entornos y Seguridad
+Entornos: desarrollo (DEV), pruebas (TEST), preproducción (STAGING) y producción (PROD). Las credenciales están en GitHub Secrets. Se usa OpenID Connect para autenticación con credenciales temporales.
+
+4. Monitoreo Continuo
+Se usan Prometheus (métricas) y Grafana (dashboards). AWS CloudWatch vigila recursos en la nube. Métricas clave: tiempo de respuesta, uso de CPU, errores, disponibilidad y éxito de peticiones.
+
+5. Automatización y GitHub Actions
+El pipeline está en GitHub Actions. Rama 'develop' despliega en staging y 'main' en producción. El flujo incluye construcción, pruebas y despliegue.
+
+6. Archivos Incluidos
+- deploy.yml: Flujo CI/CD
+- prometheus.yml: Configuración de Prometheus
+- alertmanager.yml: Reglas de alerta
+- deploy-status.coffee: Script de Hubot (pendiente)
+- README.md: Este archivo
+
+7. Requisitos
+- GitHub Actions habilitado
+- IAM de AWS con OIDC
+- Prometheus y Grafana instalados
+- Slack + Hubot (próximamente)

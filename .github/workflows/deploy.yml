@@ -1,0 +1,65 @@
+name: CI/CD PortTrack
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: porttrack-app
+  CLUSTER_NAME: porttrack-cluster
+  SERVICE_NAME: porttrack-service
+  GREEN_ENV: green
+  BLUE_ENV: blue
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar AWS OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login en Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Construir imagen Docker
+        run: |
+          docker build -t $ECR_REPOSITORY:latest .
+          docker tag $ECR_REPOSITORY:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:latest
+
+      - name: Subir imagen a ECR
+        run: |
+          docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:latest
+
+      - name: Desplegar en ECS (entorno STAGING o PROD)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            ENV="staging"
+          else
+            ENV="production"
+          fi
+
+          echo "Desplegando a entorno $ENV..."
+
+          aws ecs update-service \
+            --cluster $CLUSTER_NAME \
+            --service $SERVICE_NAME-$ENV \
+            --force-new-deployment
+
+      - name: Notificación (pendiente Slack/ChatOps)
+        run: echo "Despliegue realizado correctamente en $ENV"
